@@ -20,3 +20,6 @@
 #define SYS_link   19
 #define SYS_mkdir  20
 #define SYS_close  21
+//시스템 호출 번호 매핑 -> 새 시스템 호출을 위해 새로운 매핑 추가
+//memsize 호출 번호 매핑
+#define SYS_memsize 22

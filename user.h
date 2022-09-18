@@ -23,6 +23,9 @@ int getpid(void);
 char* sbrk(int);
 int sleep(int);
 int uptime(void);
+//xv6의 시스템 호출 정의
+//memsize 시스템 호출 정의
+int memsize(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

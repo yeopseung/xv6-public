@@ -89,3 +89,19 @@ sys_uptime(void)
   release(&tickslock);
   return xticks;
 }
+
+//sys_memsize() : 호출한 프로세스의 메모리 사용량을 리턴해줌.
+int sys_memsize(void)
+{
+    uint size;
+
+    //proc.c 의 myproc 함수 호출
+    struct proc *curproc = myproc();
+    
+    //struct proc 의 호출한 프로세스의 메모리 사용량을 size에 저장
+    size = curproc->sz;
+
+    // 결과 리턴
+    return size;
+
+}
