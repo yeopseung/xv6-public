@@ -105,3 +105,12 @@ int sys_memsize(void)
     return size;
 
 }
+
+//sys_trace() : 호출한 프로세스, 이후 생성되는 모든 자식 프로세스에 대한 trace mask 활성화.
+int sys_trace(void)
+{
+    if(argint(0,&myproc()->mask)<0)
+      return -1;
+
+    return 0;
+}

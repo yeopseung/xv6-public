@@ -200,6 +200,10 @@ fork(void)
   np->parent = curproc;
   *np->tf = *curproc->tf;
 
+  //trace: 부모의 mask 전달
+  np->mask = curproc->mask;
+ 
+
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
 

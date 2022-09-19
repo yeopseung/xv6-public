@@ -106,6 +106,8 @@ extern int sys_uptime(void);
 //시스템 호출 인수를 구문 분석하는 함수 및 실제 시스템 호출 구현에 대한 포인터
 //sys_memsize 등록
 extern int sys_memsize(void);
+//sys_trace 등록
+extern int sys_trace(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -130,6 +132,7 @@ static int (*syscalls[])(void) = {
 [SYS_mkdir]   sys_mkdir,
 [SYS_close]   sys_close,
 [SYS_memsize] sys_memsize,
+[SYS_trace]   sys_trace,
 };
 
 void
@@ -139,6 +142,7 @@ syscall(void)
   struct proc *curproc = myproc();
 
   num = curproc->tf->eax;
+  //syscalls에 저장한 시스템 콜 인지 체크하여 맞을 경우 curproc->tf->eax
   if(num > 0 && num < NELEM(syscalls) && syscalls[num]) {
     curproc->tf->eax = syscalls[num]();
   } else {
@@ -146,4 +150,38 @@ syscall(void)
             curproc->pid, curproc->name, num);
     curproc->tf->eax = -1;
   }
+  
+  //trace: mask 값에 해당하는 시스템 콜만 결과값 출력 
+    if(curproc->mask >> num)
+    {
+      char* call;
+      switch(num)
+      {
+        case 1: call = "fork"; break;
+        case 2: call = "exit"; break;
+        case 3: call = "wait"; break;
+        case 4: call = "pipe"; break;
+        case 5: call = "read"; break;
+        case 6: call = "kill"; break;
+        case 7: call = "exec"; break;
+        case 8: call = "fstat"; break;
+        case 9: call = "chdir"; break;
+        case 10: call = "dup"; break;
+        case 11: call = "getpid"; break;
+        case 12: call = "sbrk"; break;
+        case 13: call = "sleep"; break;
+        case 14: call = "uptime"; break;
+        case 15: call = "open"; break;
+        case 16: call = "write"; break;
+        case 17: call = "mknod"; break;
+        case 18: call = "unlink"; break;
+        case 19: call = "link"; break;
+        case 20: call = "mkdir"; break;
+        case 21: call = "close"; break;
+        case 22: call = "memsize"; break;
+        case 23: call = "trace"; break;
+        default: call = ""; break;
+      }
+      cprintf("syscall traced: pid = %d, syscall = %s, %d returned\n",curproc->pid,call,curproc->tf->eax);
+    }
 }
