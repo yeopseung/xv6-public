@@ -152,7 +152,7 @@ syscall(void)
   }
   
   //trace: mask 값에 해당하는 시스템 콜만 결과값 출력 
-    if(curproc->mask >> num)
+    if((curproc->mask >> num) & 1)
     {
       char* call;
       switch(num)
