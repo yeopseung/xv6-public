@@ -31,6 +31,7 @@ int main(int argc, char* argv[])
         //[COMMAND] 실행
         trace(mask);
         exec(argv[2],params);
+        printf(1,"exec failed\n");
         exit();
     }
     
