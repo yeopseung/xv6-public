@@ -114,3 +114,13 @@ int sys_trace(void)
 
     return 0;
 }
+
+//sys_weightset() : 매개변수로 입력받은 값을 sdebug 명령어에 의해 생성되는 프로세스의 weight 값으로 부여.
+int sys_weightset(void)
+{ 
+  //입력받은 값을 프로세스의 weight 값으로 부여
+  if(argint(0,&myproc()->weight)<0)
+    return -1;
+  
+  return 0;
+}

@@ -50,6 +50,8 @@ struct proc {
   struct inode *cwd;           // Current directory
   char name[16];               // Process name (debugging)
   int mask;                     // 프로세스의 마스크 값
+  long priority;                 // 프로세스의 우선순위 값
+  int weight;                   // 프로세스의 가중치 값     
 };
 
 // Process memory is laid out contiguously, low addresses first:

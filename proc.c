@@ -7,9 +7,26 @@
 #include "proc.h"
 #include "spinlock.h"
 
+/*
+  xv6의 기존 스케줄러
+  kernel (main.c) main -> mpmain -> schedular 순으로 호출되면, schedular는 무한 루프를 돌면서 runnable한 process를 찾아 나간다.
+  Runnable 프로세스를 찾으면 현재 struct cpu의 proc 멤버를 해당 프로세스의 포인터로 대체하고, scheduler 멤버를 old context로 swtch 함수를 호출한다.
+  swtch 함수는 old context로 입력 들어온 scheduler 멤버를 현재 kernel stack의 esp로 덮어쓰고, new context로 cpu register를 변조한다.
+  swtch의 retn을 통해 해당 프로세스의 next instruction을 실행해 나간다.
+*/
+
+//TIME_SLICE 값은 10000000ns 로 사용
+#define TIME_SLICE 10000000
+#define NULL ((void*)0)
+
+//가중치, 프로세스 생성 순서에 따라 1부터 차례대로 증가
+int weight = 1;
+
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
+  //가장 작은 priority 값, 스케줄링 함수가 호출될 때마다 new_priority와 함께 갱신됨.
+  long min_priority;
 } ptable;
 
 static struct proc *initproc;
@@ -19,6 +36,67 @@ extern void forkret(void);
 extern void trapret(void);
 
 static void wakeup1(void *chan);
+
+//RUNNABLE 상태의 프로세스 중 가장 낮은 priority 값을 가지는 프로세스를 선택함
+struct proc *ssu_schedule()
+{
+  struct proc *p;
+  struct proc *ret = NULL;
+
+  //ptable 탐색
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) 
+  {   
+      //프로세의 상태가 RUNNABLE 일때
+      if (p->state == RUNNABLE) {
+              //priority값을 비교 후 최소 priority 값을 가지는 프로세스를 선택함
+              if (ret == NULL || (ret->priority  > p->priority)) {
+                  ret = p;
+              }
+          }
+  }
+
+  //선택한 프로세스를 리턴
+  return ret;
+
+}
+
+//스케줄링 함수가 호출될 때마다 다음과 같은 규칙으로 업데이트 됨.
+void update_priority(struct proc *proc)
+{
+  //new_priority = old_priority + (time_slice / weight)
+  proc->priority = proc->priority + (TIME_SLICE/proc->weight);
+}
+
+
+//스케줄링 함수가 호출될 때마다 ptable을 탐색하여 가장 작은 priority 값 갱신
+void update_min_priority()
+{
+  struct proc *min = NULL;
+  struct proc *p;
+
+  //ptable 탐색
+  for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
+  {
+    //해당 프로세스가 RUNNABLE 상태일 때
+    if(p->state == RUNNABLE)
+    {
+      //초기 min 값 설정 or priority값 비교 후 최솟값 갱신
+      if(min == NULL || p->priority < min->priority)
+        min = p;
+    }
+  }
+  //min_priority 값 갱신
+  if(min != NULL)
+    ptable.min_priority = min->priority;
+}
+
+//프로세스 생성 또는 wake up 시 priority 값을 0부터 부여하게 되면, 
+//해당 프로세스가 독점 실행될 수 있으므로 관리하고 있는 프로세스의 priority값 중 가장 작은 값을 부여함.
+void assign_min_priority(struct proc *proc)
+{
+  //가장 작은 priority 값 부여
+  proc->priority = ptable.min_priority;
+}
 
 void
 pinit(void)
@@ -86,8 +164,14 @@ allocproc(void)
   return 0;
 
 found:
+  //새로 생성된 프로세스의 가중치 설정
+  p->weight = weight++;
+
   p->state = EMBRYO;
   p->pid = nextpid++;
+
+  //새로 생성된 프로세스의 우선순위 설정
+  assign_min_priority(p);
 
   release(&ptable.lock);
 
@@ -122,6 +206,9 @@ userinit(void)
 {
   struct proc *p;
   extern char _binary_initcode_start[], _binary_initcode_size[];
+
+  //initcode,init,sh 가 생성되기 때문에 최소 priority 값을 3으로 지정.
+  ptable.min_priority = 3;
 
   p = allocproc();
   
@@ -336,25 +423,57 @@ scheduler(void)
 
     // Loop over process table looking for process to run.
     acquire(&ptable.lock);
-    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
-      if(p->state != RUNNABLE)
-        continue;
 
-      // Switch to chosen process.  It is the process's job
-      // to release ptable.lock and then reacquire it
-      // before jumping back to us.
-      c->proc = p;
-      switchuvm(p);
-      p->state = RUNNING;
-
-      swtch(&(c->scheduler), p->context);
-      switchkvm();
-
-      // Process is done running for now.
-      // It should have changed its p->state before coming back.
-      c->proc = 0;
+    //스케줄러 호출 (RUNNABLE 상태인 프로세스 중 가장 낮은 priority 값을 가진 프로세스를 선택)
+    p = ssu_schedule();
+    //ptable이 비어있는 경우 실행시킬 프로세스는 없음.
+    if(p == NULL)
+    {
+      release(&ptable.lock);
+      continue;
     }
+    // Switch to chosen process.  It is the process's job
+    // to release ptable.lock and then reacquire it
+    // before jumping back to us.
+    c->proc = p;
+    switchuvm(p);
+    p->state = RUNNING;
+
+    swtch(&(c->scheduler), p->context);
+    switchkvm();
+
+    //선택한 프로세스를 수행한 후
+    //우선순위를 업데이트하고, 가장 낮은 priority 값 또한 업데이트 해줌.
+    update_priority(p);
+    update_min_priority();
+
+
+    // Process is done running for now.
+    // It should have changed its p->state before coming back.
+    c->proc = 0;
+
     release(&ptable.lock);
+
+
+    // for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+    //   if(p->state != RUNNABLE)
+    //     continue;
+
+    //   // Switch to chosen process.  It is the process's job
+    //   // to release ptable.lock and then reacquire it
+    //   // before jumping back to us.
+    //   c->proc = p;
+    //   switchuvm(p);
+    //   p->state = RUNNING;
+
+    //   swtch(&(c->scheduler), p->context);
+    //   switchkvm();
+
+    //   // Process is done running for now.
+    //   // It should have changed its p->state before coming back.
+    //   c->proc = 0;
+    // }
+    // release(&ptable.lock);
 
   }
 }
@@ -465,7 +584,13 @@ wakeup1(void *chan)
 
   for(p = ptable.proc; p < &ptable.proc[NPROC]; p++)
     if(p->state == SLEEPING && p->chan == chan)
-      p->state = RUNNABLE;
+    {
+        p->state = RUNNABLE;
+        //wake up(SLEEPING -> RUNNABLE) 한 프로세스에게는 관리하고 있는 프로세스의 priority값 중 가장 작은 값을 부여함.
+        //따라서 assign_min_priority() 호출
+        assign_min_priority(p);
+    }
+      
 }
 
 // Wake up all processes sleeping on chan.
@@ -535,4 +660,12 @@ procdump(void)
     }
     cprintf("\n");
   }
+}
+
+
+void do_weightset(int weight)
+{
+  acquire(&ptable.lock);
+  myproc()->weight = weight;
+  release(&ptable.lock);
 }

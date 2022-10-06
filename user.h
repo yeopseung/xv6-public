@@ -28,6 +28,8 @@ int uptime(void);
 int memsize(void);
 //trace 시스템 호출 정의
 int trace(int);
+//weightset 시스템 호출 정의
+int weightset(void);
 
 // ulib.c
 int stat(const char*, struct stat*);

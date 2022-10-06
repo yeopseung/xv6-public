@@ -108,6 +108,8 @@ extern int sys_uptime(void);
 extern int sys_memsize(void);
 //sys_trace 등록
 extern int sys_trace(void);
+//sys_weightset 등록
+extern int sys_weightset(void);
 
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
@@ -133,6 +135,7 @@ static int (*syscalls[])(void) = {
 [SYS_close]   sys_close,
 [SYS_memsize] sys_memsize,
 [SYS_trace]   sys_trace,
+[SYS_weightset] sys_weightset,
 };
 
 void
@@ -180,6 +183,7 @@ syscall(void)
         case 21: call = "close"; break;
         case 22: call = "memsize"; break;
         case 23: call = "trace"; break;
+        case 24: call = "weightset"; break;
         default: call = ""; break;
       }
       cprintf("syscall traced: pid = %d, syscall = %s, %d returned\n",curproc->pid,call,curproc->tf->eax);

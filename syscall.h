@@ -25,3 +25,5 @@
 #define SYS_memsize 22
 //trace 호출 번호 매핑
 #define SYS_trace   23
+//weightset 호출 번호 매핑
+#define SYS_weightset 24
