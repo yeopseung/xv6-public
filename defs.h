@@ -120,6 +120,8 @@ void            userinit(void);
 int             wait(void);
 void            wakeup(void*);
 void            yield(void);
+//do_weight 함수 원형 추가
+void            do_weightset(int);
 
 // swtch.S
 void            swtch(struct context**, struct context*);

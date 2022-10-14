@@ -118,9 +118,17 @@ int sys_trace(void)
 //sys_weightset() : 매개변수로 입력받은 값을 sdebug 명령어에 의해 생성되는 프로세스의 weight 값으로 부여.
 int sys_weightset(void)
 { 
+  int weight;
   //입력받은 값을 프로세스의 weight 값으로 부여
-  if(argint(0,&myproc()->weight)<0)
+  if(argint(0,&weight)<0)
     return -1;
-  
+
+  if(weight == 0)
+  {
+    cprintf("weight error: weight 값이 0입니다.\n");
+    return -1;
+  }
+
+  do_weightset(weight);
   return 0;
 }

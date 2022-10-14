@@ -55,6 +55,12 @@ struct proc *ssu_schedule()
           }
   }
 
+  //디버깅
+  #ifdef DEBUG
+   if (ret)
+      cprintf("PID: %d, NAME: %s, WEIGHT: %d, PRIORITY: %d\n", ret->pid, ret->name, ret->weight, ret->priority);
+  #endif
+
   //선택한 프로세스를 리턴
   return ret;
 

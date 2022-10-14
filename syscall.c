@@ -111,6 +111,7 @@ extern int sys_trace(void);
 //sys_weightset 등록
 extern int sys_weightset(void);
 
+
 static int (*syscalls[])(void) = {
 [SYS_fork]    sys_fork,
 [SYS_exit]    sys_exit,

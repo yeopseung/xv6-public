@@ -12,12 +12,13 @@
 void sdebug_func(void)
 {
     int n, pid;
+    
 
     printf(1,"start sdebug command\n");
 
     //PNUM 만큼 프로세스 생성
-    for(n=0; n<PNUM; n++){
-
+    for(n=0; n<PNUM; n++)
+    {
         //프로세스 생성
         pid = fork();
         
@@ -31,28 +32,45 @@ void sdebug_func(void)
         //자식 프로세스일 경우
         if(pid == 0)
         {
-            unsigned long start = uptime();
-            unsigned long counter;
-            weightset();
-            while(1)
+            if(weightset(n+1) == -1)
             {
-                counter = uptime();
-
-                if(counter == PRINT_CYCLE)
-                {
-                    //printf(1,"PID: %d, WEIGHT: %d, TIMES: %d\n",myproc().pid,myproc().weight,(uptime()-start)*10);
-                }
-
-                //
-                if(counter == TOTAL_COUNTER)
-                    exit();
+                exit();
             }
-            
+            long start = uptime();
+            long end;
+            int counter = 0;
+            int print_counter = PRINT_CYCLE;
+            int first=1;
+
+            while(counter <= TOTAL_COUNTER)
+            {
+                counter++;
+                print_counter--;
+
+                if(print_counter == 0)
+                {
+                    if(first)
+                    {
+                        end = uptime();
+                        printf(1,"PID: %d, WEIGHT: %d, ",getpid(),n+1);
+                        printf(1,"TIMES: %d ms\n",(end-start)*10);
+                        first = 0;
+                    }
+                    
+                    print_counter = PRINT_CYCLE;
+                }
+            } 
+            printf(1,"PID: %d terminated\n",getpid());
+            exit();
         }
+
+       
     }
 
     for(; n > 0; n--)
     {
+       
+        //fork가 생성한 자식 프로세스가 PNUM개 이하일때
         if(wait() < 0)
         {
             printf(1, "wait stopped early\n");
@@ -60,6 +78,7 @@ void sdebug_func(void)
         }
     }
 
+    //fork가 생성된 자식 프로세스가 N개 이상일때
     if(wait() != -1)
     {
         printf(1, "wait got too many\n");

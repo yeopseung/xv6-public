@@ -29,7 +29,7 @@ int memsize(void);
 //trace 시스템 호출 정의
 int trace(int);
 //weightset 시스템 호출 정의
-int weightset(void);
+int weightset(int);
 
 // ulib.c
 int stat(const char*, struct stat*);
